@@ -154,7 +154,7 @@ int main() {
             cout << "Enter Quantity Sold: ";
             cin >> qtySold;
 
-            inventory.sellProduct(id, qtySold); // Updating the inventory after sale
+            inventory.sellProduct(id, qtySold); // Updating the inventory after sales are made 
         
         } else if (choice == 3) { // Displaying Inventory
             inventory.displayInventory();
