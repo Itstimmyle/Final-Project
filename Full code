@@ -6,7 +6,7 @@
 using namespace std;
 
 // Product class to represent each product in the inventory
-class Product {
+class Product { 
 private:
     int productID; // Unique ID for the product
     string productName; // Name of the product
@@ -28,7 +28,7 @@ public:
     double getUnitPrice() const { return unitPrice; }
     int getReorderThreshold() const { return reorderThreshold; }
 
-    // Update the stock quantity of the product
+    // Method to update the stock quantity of the product
     void updateQuantity(int qty) { quantity = qty; }
     // Formatting the products for display
     void display() const {
@@ -49,34 +49,37 @@ private:
                  << product.getCategory() << "," << product.getQuantity() << ","
                  << product.getReorderThreshold() << "," << product.getUnitPrice() << endl;
         }
-        file.close();
+        file.close(); // closes the file 
     }
 
 public:
-// Constructor to load products from file into memory
+// Constructor to load products from file into memory once the program starts
     Inventory() {
         ifstream file("inventory.txt"); // Open the inventory file
-        if (file.is_open()) {
+        if (file.is_open()) { // Checks if the file exists and is accessible
             string line;
             while (getline(file, line)) {
                 int id, qty, threshold;
                 string name, category;
                 double price;
 
+                // Analyze the line to extract product details
                 sscanf(line.c_str(), "%d,%[^,],%[^,],%d,%d,%lf", &id, &name[0], &category[0], &qty, &threshold, &price);
+                // Create a product object and add it to the list
                 products.emplace_back(id, name, category, qty, threshold, price);
             }
-            file.close();
+            file.close(); // Close file
         }
     }
 
+    // Destructor, save the state of inventory to the file upon exit
     ~Inventory() { saveToFile(); }
-
+    // Add product to inventory
     void addProduct(int id, string name, string category, int qty, int threshold, double price) {
         products.emplace_back(id, name, category, qty, threshold, price);
-        saveToFile();
+        saveToFile(); // Saving the updated inventory to file
     }
-
+    // Method used to sell a product and update stock levels
     void sellProduct(int id, int qtySold) {
         for (auto& product : products) {
             if (product.getProductID() == id) {
@@ -84,20 +87,22 @@ public:
                     product.updateQuantity(product.getQuantity() - qtySold);
                     cout << "Sale recorded. Updated stock level: " << product.getQuantity() << endl;
 
+                    // Stock level below or equal to threshold
                     if (product.getQuantity() <= product.getReorderThreshold()) {
                         cout << "Warning: Product " << product.getProductID() << " (" << product.getProductName()
                              << ") has low stock. Please reorder.\n";
                     }
                 } else {
-                    cout << "Insufficient stock available for this product.\n";
+                    cout << "Insufficient stock available for this product.\n"; // not enough in stock for product sale
                 }
                 return;
             }
         }
-        cout << "Product ID not found.\n";
+        cout << "Product ID not found.\n"; // No product ID assigned
     }
-
+    // Display all products in inventory
     void displayInventory() {
+        // Table header format
         cout << setw(10) << "Product ID" << setw(20) << "Product Name" << setw(15) << "Category"
              << setw(10) << "Stock" << setw(10) << "Reorder" << setw(10) << "Unit Price" << endl;
         cout << string(75, '-') << endl;
@@ -108,19 +113,20 @@ public:
 };
 
 int main() {
-    Inventory inventory;
+    Inventory inventory; // Inventory object to manange products
 
-    int choice;
+    int choice; // Storing a user's menu choice (Variable)
+   
     do {
-        cout << "\nInventory Management System\n";
+        cout << "\nInventory Management System\n"; // Main menu Display
         cout << "1. Add Product\n";
         cout << "2. Sell Product\n";
         cout << "3. Display Inventory\n";
         cout << "4. Exit\n";
         cout << "Enter your choice: ";
         cin >> choice;
-
-        if (choice == 1) {
+        
+        if (choice == 1) { // Adding a new product 
             int id, qty, threshold;
             string name, category;
             double price;
@@ -138,20 +144,22 @@ int main() {
             cout << "Enter Unit Price: ";
             cin >> price;
 
-            inventory.addProduct(id, name, category, qty, threshold, price);
+            inventory.addProduct(id, name, category, qty, threshold, price); // Adding the product to inventory
             cout << "Product added successfully.\n";
-        } else if (choice == 2) {
+          
+        } else if (choice == 2) { // Selling a product 
             int id, qtySold;
             cout << "Enter Product ID: ";
             cin >> id;
             cout << "Enter Quantity Sold: ";
             cin >> qtySold;
 
-            inventory.sellProduct(id, qtySold);
-        } else if (choice == 3) {
+            inventory.sellProduct(id, qtySold); // Updating the inventory after sale
+        
+        } else if (choice == 3) { // Displaying Inventory
             inventory.displayInventory();
         }
-    } while (choice != 4);
+    } while (choice != 4); // This exits the program if option 4 is chosen
 
     return 0;
 }
