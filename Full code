@@ -5,20 +5,22 @@
 
 using namespace std;
 
-// Product class
+// Product class to represent each product in the inventory
 class Product {
 private:
-    int productID;
-    string productName;
-    string category;
-    int quantity;
-    int reorderThreshold;
-    double unitPrice;
+    int productID; // Unique ID for the product
+    string productName; // Name of the product
+    string category; // Product category (e.g., electronics)
+    int quantity; // Current stock level
+    int reorderThreshold; // Minimum stock level before "reorder" alert
+    double unitPrice; // price per unit of the product
 
 public:
+// Constructer to initialize a product
     Product(int id, string name, string cat, int qty, int threshold, double price)
         : productID(id), productName(name), category(cat), quantity(qty), reorderThreshold(threshold), unitPrice(price) {}
-
+    
+    // Getters for accessing private data members
     int getProductID() const { return productID; }
     string getProductName() const { return productName; }
     string getCategory() const { return category; }
@@ -26,19 +28,20 @@ public:
     double getUnitPrice() const { return unitPrice; }
     int getReorderThreshold() const { return reorderThreshold; }
 
+    // Update the stock quantity of the product
     void updateQuantity(int qty) { quantity = qty; }
-
+    // Formatting the products for display
     void display() const {
         cout << setw(10) << productID << setw(20) << productName << setw(15) << category
              << setw(10) << quantity << setw(10) << reorderThreshold << setw(10) << unitPrice << endl;
     }
 };
 
-// Inventory class
+// Inventory class to manage a list of products and handle inventory operations
 class Inventory {
 private:
-    vector<Product> products;
-
+    vector<Product> products; // list of products in inventory
+    // Save all products to a file
     void saveToFile() {
         ofstream file("inventory.txt", ios::trunc);
         for (const auto& product : products) {
@@ -50,8 +53,9 @@ private:
     }
 
 public:
+// Constructor to load products from file into memory
     Inventory() {
-        ifstream file("inventory.txt");
+        ifstream file("inventory.txt"); // Open the inventory file
         if (file.is_open()) {
             string line;
             while (getline(file, line)) {
