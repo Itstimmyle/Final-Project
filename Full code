@@ -2,25 +2,26 @@
 #include <fstream>
 #include <vector>
 #include <iomanip>
-
+#include <string>
+#include <limits>
+#include <sstream>
 using namespace std;
 
 // Product class to represent each product in the inventory
-class Product { 
+class Product {
 private:
-    int productID; // Unique ID for the product
-    string productName; // Name of the product
-    string category; // Product category (e.g., electronics)
-    int quantity; // Current stock level
-    int reorderThreshold; // Minimum stock level before "reorder" alert
-    double unitPrice; // price per unit of the product
+    int productID;
+    string productName;
+    string category;
+    int quantity;
+    int reorderThreshold;
+    double unitPrice;
 
 public:
-// Constructer to initialize a product
     Product(int id, string name, string cat, int qty, int threshold, double price)
-        : productID(id), productName(name), category(cat), quantity(qty), reorderThreshold(threshold), unitPrice(price) {}
-    
-    // Getters for accessing private data members
+        : productID(id), productName(name), category(cat), quantity(qty),
+          reorderThreshold(threshold), unitPrice(price) {}
+
     int getProductID() const { return productID; }
     string getProductName() const { return productName; }
     string getCategory() const { return category; }
@@ -28,83 +29,148 @@ public:
     double getUnitPrice() const { return unitPrice; }
     int getReorderThreshold() const { return reorderThreshold; }
 
-    // Method to update the stock quantity of the product
-    void updateQuantity(int qty) { quantity = qty; }
-    // Formatting the products for display
+    void updateQuantity(int qty) { quantity += qty; }
+    void setQuantity(int qty) { quantity = qty; }
+
     void display() const {
-        cout << setw(10) << productID << setw(20) << productName << setw(15) << category
-             << setw(10) << quantity << setw(10) << reorderThreshold << setw(10) << unitPrice << endl;
+        cout << setw(10) << productID
+             << setw(20) << productName
+             << setw(15) << category
+             << setw(10) << quantity
+             << setw(10) << reorderThreshold
+             << setw(10) << unitPrice << endl;
+    }
+
+    bool needsReorder() const {
+        return quantity <= reorderThreshold;
     }
 };
 
 // Inventory class to manage a list of products and handle inventory operations
 class Inventory {
 private:
-    vector<Product> products; // list of products in inventory
-    // Save all products to a file
+    vector<Product> products;
+
     void saveToFile() {
         ofstream file("inventory.txt", ios::trunc);
         for (const auto& product : products) {
-            file << product.getProductID() << "," << product.getProductName() << ","
-                 << product.getCategory() << "," << product.getQuantity() << ","
-                 << product.getReorderThreshold() << "," << product.getUnitPrice() << endl;
+            file << product.getProductID() << ","
+                 << product.getProductName() << ","
+                 << product.getCategory() << ","
+                 << product.getQuantity() << ","
+                 << product.getReorderThreshold() << ","
+                 << product.getUnitPrice() << endl;
         }
-        file.close(); // closes the file 
+        file.close();
     }
 
 public:
-// Constructor to load products from file into memory once the program starts
     Inventory() {
-        ifstream file("inventory.txt"); // Open the inventory file
-        if (file.is_open()) { // Checks if the file exists and is accessible
+        ifstream file("inventory.txt");
+        if (file.is_open()) {
             string line;
             while (getline(file, line)) {
+                istringstream iss(line);
                 int id, qty, threshold;
                 string name, category;
                 double price;
+                char comma;
 
-                // Analyze the line to extract product details
-                sscanf(line.c_str(), "%d,%[^,],%[^,],%d,%d,%lf", &id, &name[0], &category[0], &qty, &threshold, &price);
-                // Create a product object and add it to the list
-                products.emplace_back(id, name, category, qty, threshold, price);
+                if (iss >> id >> comma >> ws &&
+                    getline(iss, name, ',') &&
+                    getline(iss, category, ',') &&
+                    iss >> qty >> comma >> threshold >> comma >> price) {
+                    products.emplace_back(id, name, category, qty, threshold, price);
+                }
             }
-            file.close(); // Close file
+            file.close();
         }
     }
 
-    // Destructor, save the state of inventory to the file upon exit
     ~Inventory() { saveToFile(); }
-    // Add product to inventory
-    void addProduct(int id, string name, string category, int qty, int threshold, double price) {
-        products.emplace_back(id, name, category, qty, threshold, price);
-        saveToFile(); // Saving the updated inventory to file
-    }
-    // Method used to sell a product and update stock levels
-    void sellProduct(int id, int qtySold) {
-        for (auto& product : products) {
-            if (product.getProductID() == id) {
-                if (product.getQuantity() >= qtySold) {
-                    product.updateQuantity(product.getQuantity() - qtySold);
-                    cout << "Sale recorded. Updated stock level: " << product.getQuantity() << endl;
 
-                    // Stock level below or equal to threshold
-                    if (product.getQuantity() <= product.getReorderThreshold()) {
-                        cout << "Warning: Product " << product.getProductID() << " (" << product.getProductName()
-                             << ") has low stock. Please reorder.\n";
-                    }
-                } else {
-                    cout << "Insufficient stock available for this product.\n"; // not enough in stock for product sale
-                }
+    void addProduct(int id, string name, string category, int qty, int threshold, double price) {
+        for (const auto& product : products) {
+            if (product.getProductID() == id) {
+                cout << "Error: Product ID " << id << " already exists. Please use a unique ID.\n";
                 return;
             }
         }
-        cout << "Product ID not found.\n"; // No product ID assigned
+        products.emplace_back(id, name, category, qty, threshold, price);
+        saveToFile();
+        cout << "Product added successfully.\n";
     }
-    // Display all products in inventory
+
+    void updateInventory(int id, int qty) {
+        for (auto& product : products) {
+            if (product.getProductID() == id) {
+                product.updateQuantity(qty);
+
+                if (product.getQuantity() <= product.getReorderThreshold()) {
+                    cout << "Warning: Quantity for Product ID " << id 
+                         << " has reached or fallen below the reorder threshold ("
+                         << product.getReorderThreshold() << ").\n";
+                }
+
+                saveToFile();
+                cout << "Inventory updated successfully.\n";
+                return;
+            }
+        }
+        cout << "Product ID not found.\n";
+    }
+
+    void searchProduct(int id = -1, string name = "") {
+        bool found = false;
+        for (const auto& product : products) {
+            if (product.getProductID() == id || product.getProductName() == name) {
+                product.display();
+                found = true;
+            }
+        }
+        if (!found) {
+            cout << "No matching product found.\n";
+        }
+    }
+
+    void filterByCategory(string category) {
+        cout << setw(10) << "Product ID"
+             << setw(20) << "Product Name"
+             << setw(15) << "Category"
+             << setw(10) << "Stock"
+             << setw(10) << "Reorder"
+             << setw(10) << "Unit Price" << endl;
+        cout << string(75, '-') << endl;
+        for (const auto& product : products) {
+            if (product.getCategory() == category) {
+                product.display();
+            }
+        }
+    }
+
+    void generateReorderReport() {
+        cout << "Reorder Report:\n";
+        cout << setw(10) << "Product ID"
+             << setw(20) << "Product Name"
+             << setw(15) << "Category"
+             << setw(10) << "Stock"
+             << setw(10) << "Reorder"
+             << setw(10) << "Unit Price" << endl;
+        cout << string(75, '-') << endl;
+        for (const auto& product : products) {
+            if (product.needsReorder()) {
+                product.display();
+            }
+        }
+    }
+
     void displayInventory() {
-        // Table header format
-        cout << setw(10) << "Product ID" << setw(20) << "Product Name" << setw(15) << "Category"
-             << setw(10) << "Stock" << setw(10) << "Reorder" << setw(10) << "Unit Price" << endl;
+        cout << setw(10) << "Product ID"
+             << setw(20) << "Product Name"
+             << setw(15) << "Category"
+             << setw(10) << "Stock"
+             << setw(10) << "Reorder"
+             << setw(10) << "Unit Price" << endl;
         cout << string(75, '-') << endl;
         for (const auto& product : products) {
             product.display();
@@ -113,53 +179,132 @@ public:
 };
 
 int main() {
-    Inventory inventory; // Inventory object to manange products
+    Inventory inventory;
+    int choice;
 
-    int choice; // Storing a user's menu choice (Variable)
-   
     do {
-        cout << "\nInventory Management System\n"; // Main menu Display
+        cout << "\nInventory Management System\n";
         cout << "1. Add Product\n";
-        cout << "2. Sell Product\n";
-        cout << "3. Display Inventory\n";
-        cout << "4. Exit\n";
+        cout << "2. Update Inventory\n";
+        cout << "3. Sell Product\n";
+        cout << "4. Search Product\n";
+        cout << "5. Filter Products by Category\n";
+        cout << "6. Display Inventory\n";
+        cout << "7. Generate Reorder Report\n";
+        cout << "8. Exit\n";
         cout << "Enter your choice: ";
-        cin >> choice;
         
-        if (choice == 1) { // Adding a new product 
+        cin >> choice;
+
+        // Validate input
+        if (cin.fail() || choice < 1 || choice > 8) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid choice. Please enter a number between 1 and 8.\n";
+            continue;
+        }
+
+        if (choice == 1) {
             int id, qty, threshold;
             string name, category;
             double price;
+
             cout << "Enter Product ID: ";
-            cin >> id;
+            while (!(cin >> id)) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a valid Product ID (integer): ";
+            }
+
             cin.ignore();
             cout << "Enter Product Name: ";
             getline(cin, name);
             cout << "Enter Category: ";
             getline(cin, category);
+            
             cout << "Enter Quantity: ";
-            cin >> qty;
-            cout << "Enter Reorder Threshold: ";
-            cin >> threshold;
-            cout << "Enter Unit Price: ";
-            cin >> price;
+            while (!(cin >> qty) || qty < 0) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a valid Quantity (non-negative integer): ";
+            }
 
-            inventory.addProduct(id, name, category, qty, threshold, price); // Adding the product to inventory
-            cout << "Product added successfully.\n";
-          
-        } else if (choice == 2) { // Selling a product 
+            cout << "Enter Reorder Threshold: ";
+            while (!(cin >> threshold) || threshold < 0) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a valid Reorder Threshold (non-negative integer): ";
+            }
+
+            cout << "Enter Unit Price: $";
+            while (!(cin >> price) || price < 0) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a valid Unit Price (non-negative number): ";
+            }
+
+            inventory.addProduct(id, name, category, qty, threshold, price);
+        } else if (choice == 2) {
+            int id, qty;
+            cout << "Enter Product ID: ";
+            while (!(cin >> id)) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a valid Product ID (integer): ";
+            }
+
+            cout << "Enter Quantity to Add: ";
+            while (!(cin >> qty)) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a valid Quantity (integer): ";
+            }
+
+            inventory.updateInventory(id, qty);
+        } else if (choice == 3) {
             int id, qtySold;
             cout << "Enter Product ID: ";
-            cin >> id;
+            while (!(cin >> id)) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a valid Product ID (integer): ";
+            }
+
             cout << "Enter Quantity Sold: ";
-            cin >> qtySold;
+            while (!(cin >> qtySold) || qtySold < 0) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a valid Quantity Sold (non-negative integer): ";
+            }
 
-            inventory.sellProduct(id, qtySold); // Updating the inventory after sales are made 
-        
-        } else if (choice == 3) { // Displaying Inventory
+            inventory.updateInventory(id, -qtySold);
+        } else if (choice == 4) {
+            int id;
+            string name;
+
+            cout << "Enter Product ID (or -1 to skip): ";
+            cin >> id;
+            cin.ignore();
+
+            if (id == -1) {
+                cout << "Enter Product Name: ";
+                getline(cin, name);
+            }
+
+            inventory.searchProduct(id, name);
+        } else if (choice == 5) {
+            string category;
+            cin.ignore();
+            cout << "Enter Category: ";
+            getline(cin, category);
+            inventory.filterByCategory(category);
+        } else if (choice == 6) {
             inventory.displayInventory();
+        } else if (choice == 7) {
+            inventory.generateReorderReport();
         }
-    } while (choice != 4); // This exits the program if option 4 is chosen
+    } while (choice != 8);
 
+    cout << "Exiting Inventory Management System.\n";
     return 0;
 }
