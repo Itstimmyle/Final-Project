@@ -7,21 +7,23 @@
 #include <sstream>
 using namespace std;
 
-// Product class to represent each product in the inventory
+// Represents a product in the inventory
 class Product {
 private:
-    int productID;
-    string productName;
-    string category;
-    int quantity;
-    int reorderThreshold;
-    double unitPrice;
+    int productID;            // Unique ID for the product
+    string productName;       // Name of the product
+    string category;          // Category of the product
+    int quantity;             // Quantity available in stock
+    int reorderThreshold;     // Minimum stock level before reorder is required
+    double unitPrice;         // Price per unit of the product
 
 public:
+    // Constructor to initialize a Product object
     Product(int id, string name, string cat, int qty, int threshold, double price)
         : productID(id), productName(name), category(cat), quantity(qty),
           reorderThreshold(threshold), unitPrice(price) {}
 
+    // Getters for product attributes
     int getProductID() const { return productID; }
     string getProductName() const { return productName; }
     string getCategory() const { return category; }
@@ -29,9 +31,13 @@ public:
     double getUnitPrice() const { return unitPrice; }
     int getReorderThreshold() const { return reorderThreshold; }
 
+    // Update the product's quantity (can increase or decrease)
     void updateQuantity(int qty) { quantity += qty; }
+
+    // Set a specific quantity for the product
     void setQuantity(int qty) { quantity = qty; }
 
+    // Display product details in a formatted manner
     void display() const {
         cout << setw(10) << productID
              << setw(20) << productName
@@ -41,18 +47,20 @@ public:
              << setw(10) << unitPrice << endl;
     }
 
+    // Check if the product needs to be reordered
     bool needsReorder() const {
         return quantity <= reorderThreshold;
     }
 };
 
-// Inventory class to manage a list of products and handle inventory operations
+// Manages a collection of products and inventory operations
 class Inventory {
 private:
-    vector<Product> products;
+    vector<Product> products; // Stores all products in the inventory
 
+    // Save current inventory to a file
     void saveToFile() {
-        ofstream file("inventory.txt", ios::trunc);
+        ofstream file("inventory.txt", ios::trunc); // Open file in truncate mode
         for (const auto& product : products) {
             file << product.getProductID() << ","
                  << product.getProductName() << ","
@@ -61,10 +69,11 @@ private:
                  << product.getReorderThreshold() << ","
                  << product.getUnitPrice() << endl;
         }
-        file.close();
+        file.close(); // Close the file
     }
 
 public:
+    // Constructor to initialize inventory and load data from file
     Inventory() {
         ifstream file("inventory.txt");
         if (file.is_open()) {
@@ -76,6 +85,7 @@ public:
                 double price;
                 char comma;
 
+                // Parse product details from file line
                 if (iss >> id >> comma >> ws &&
                     getline(iss, name, ',') &&
                     getline(iss, category, ',') &&
@@ -87,32 +97,37 @@ public:
         }
     }
 
+    // Destructor to save inventory back to the file
     ~Inventory() { saveToFile(); }
 
+    // Add a new product to the inventory
     void addProduct(int id, string name, string category, int qty, int threshold, double price) {
+        // Ensure the product ID is unique
         for (const auto& product : products) {
             if (product.getProductID() == id) {
                 cout << "Error: Product ID " << id << " already exists. Please use a unique ID.\n";
                 return;
             }
         }
-        products.emplace_back(id, name, category, qty, threshold, price);
-        saveToFile();
+        products.emplace_back(id, name, category, qty, threshold, price); // Add the product
+        saveToFile(); // Save changes to file
         cout << "Product added successfully.\n";
     }
 
+    // Update the quantity of a specific product in the inventory
     void updateInventory(int id, int qty) {
         for (auto& product : products) {
             if (product.getProductID() == id) {
-                product.updateQuantity(qty);
+                product.updateQuantity(qty); // Adjust the product's quantity
 
+                // Warn if quantity falls below reorder threshold
                 if (product.getQuantity() <= product.getReorderThreshold()) {
                     cout << "Warning: Quantity for Product ID " << id 
-                         << " has reached or fallen below the reorder threshold ("
+                         << " has reached or fallen below the reorder threshold (" 
                          << product.getReorderThreshold() << ").\n";
                 }
 
-                saveToFile();
+                saveToFile(); // Save changes to file
                 cout << "Inventory updated successfully.\n";
                 return;
             }
@@ -120,11 +135,12 @@ public:
         cout << "Product ID not found.\n";
     }
 
+    // Search for a product by ID or name
     void searchProduct(int id = -1, string name = "") {
         bool found = false;
         for (const auto& product : products) {
             if (product.getProductID() == id || product.getProductName() == name) {
-                product.display();
+                product.display(); // Display matching product
                 found = true;
             }
         }
@@ -133,6 +149,7 @@ public:
         }
     }
 
+    // Display all products in a specific category
     void filterByCategory(string category) {
         cout << setw(10) << "Product ID"
              << setw(20) << "Product Name"
@@ -141,6 +158,7 @@ public:
              << setw(10) << "Reorder"
              << setw(10) << "Unit Price" << endl;
         cout << string(75, '-') << endl;
+
         for (const auto& product : products) {
             if (product.getCategory() == category) {
                 product.display();
@@ -148,6 +166,7 @@ public:
         }
     }
 
+    // Generate and display a report of products needing reorder
     void generateReorderReport() {
         cout << "Reorder Report:\n";
         cout << setw(10) << "Product ID"
@@ -157,6 +176,7 @@ public:
              << setw(10) << "Reorder"
              << setw(10) << "Unit Price" << endl;
         cout << string(75, '-') << endl;
+
         for (const auto& product : products) {
             if (product.needsReorder()) {
                 product.display();
@@ -164,6 +184,7 @@ public:
         }
     }
 
+    // Display all products in the inventory
     void displayInventory() {
         cout << setw(10) << "Product ID"
              << setw(20) << "Product Name"
@@ -172,17 +193,20 @@ public:
              << setw(10) << "Reorder"
              << setw(10) << "Unit Price" << endl;
         cout << string(75, '-') << endl;
+
         for (const auto& product : products) {
             product.display();
         }
     }
 };
 
+// Main function to provide user interface for inventory management
 int main() {
-    Inventory inventory;
+    Inventory inventory; // Create inventory object
     int choice;
 
     do {
+        // Display menu options
         cout << "\nInventory Management System\n";
         cout << "1. Add Product\n";
         cout << "2. Update Inventory\n";
@@ -196,7 +220,7 @@ int main() {
         
         cin >> choice;
 
-        // Validate input
+        // Validate user input
         if (cin.fail() || choice < 1 || choice > 8) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -204,7 +228,9 @@ int main() {
             continue;
         }
 
+        // Handle user choice
         if (choice == 1) {
+            // Add a new product
             int id, qty, threshold;
             string name, category;
             double price;
@@ -244,7 +270,9 @@ int main() {
             }
 
             inventory.addProduct(id, name, category, qty, threshold, price);
+
         } else if (choice == 2) {
+            // Update inventory quantity
             int id, qty;
             cout << "Enter Product ID: ";
             while (!(cin >> id)) {
@@ -261,7 +289,9 @@ int main() {
             }
 
             inventory.updateInventory(id, qty);
+
         } else if (choice == 3) {
+            // Handle product sale
             int id, qtySold;
             cout << "Enter Product ID: ";
             while (!(cin >> id)) {
@@ -278,7 +308,9 @@ int main() {
             }
 
             inventory.updateInventory(id, -qtySold);
+
         } else if (choice == 4) {
+            // Search for a product
             int id;
             string name;
 
@@ -292,18 +324,25 @@ int main() {
             }
 
             inventory.searchProduct(id, name);
+
         } else if (choice == 5) {
+            // Filter products by category
             string category;
             cin.ignore();
             cout << "Enter Category: ";
             getline(cin, category);
             inventory.filterByCategory(category);
+
         } else if (choice == 6) {
+            // Display all inventory
             inventory.displayInventory();
+
         } else if (choice == 7) {
+            // Generate reorder report
             inventory.generateReorderReport();
         }
-    } while (choice != 8);
+
+    } while (choice != 8); // Exit the program
 
     cout << "Exiting Inventory Management System.\n";
     return 0;
