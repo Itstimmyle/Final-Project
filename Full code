@@ -58,7 +58,7 @@ class Inventory {
 private:
     vector<Product> products; // Stores all products in the inventory
 
-    // Save current inventory to a file
+    // Save current inventory to a .txt file
     void saveToFile() {
         ofstream file("inventory.txt", ios::trunc); // Open file in truncate mode
         for (const auto& product : products) {
@@ -120,7 +120,7 @@ public:
             if (product.getProductID() == id) {
                 product.updateQuantity(qty); // Adjust the product's quantity
 
-                // Warn if quantity falls below reorder threshold
+                // Warns if quantity falls below reorder threshold
                 if (product.getQuantity() <= product.getReorderThreshold()) {
                     cout << "Warning: Quantity for Product ID " << id 
                          << " has reached or fallen below the reorder threshold (" 
